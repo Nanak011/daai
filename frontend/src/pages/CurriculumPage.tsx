@@ -23,9 +23,6 @@ export function CurriculumPage() {
       <div className="max-w-3xl space-y-4">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-daai-600">Curriculum</p>
         <h1 className="font-display text-4xl font-bold text-slate-900">Fellowship curriculum and milestones</h1>
-        <p className="text-lg leading-8 text-slate-600">
-          The curriculum is managed by the admin area and can be adapted for each cohort. Publicly visible items are grouped by track.
-        </p>
       </div>
       <div className="grid gap-6">
         {Array.from(grouped.entries()).map(([track, items]) => (
