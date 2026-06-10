@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { LoadingScreen } from './components/LoadingScreen';
 import { AboutPage } from './pages/AboutPage';
 import { ApplyPage } from './pages/ApplyPage';
 import { ApplicationSubmittedPage } from './pages/ApplicationSubmittedPage';
@@ -13,6 +15,22 @@ import { ServicesPage } from './pages/ServicesPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 
 export default function App() {
+  const [initialLoading, setInitialLoading] = useState(true);
+
+  // Initial page load only (not on route changes)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 1430); // Show loader for 1.43 seconds (one complete cycle)
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Show loading screen only on initial load
+  if (initialLoading) {
+    return <LoadingScreen />;
+  }
+
   return (
     <Routes>
       <Route element={<Layout />}>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { fetchCandidate, fetchQuizQuestions, submitQuiz, type CandidateStatus, type QuizQuestionBatch } from '../lib/api';
 
 const QUIZ_SECONDS = 5 * 60;
@@ -97,8 +98,12 @@ export function QuizPage() {
     setSubmitting(true);
     setError('');
 
+    // Ensure minimum loading time for complete animation cycle
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1430));
+
     try {
-      const response = await submitQuiz(candidate.id, answers);
+      const submitPromise = submitQuiz(candidate.id, answers);
+      const [response] = await Promise.all([submitPromise, minLoadingTime]);
       navigate('/quiz-completed', {
         state: {
           candidateName: candidate.full_name,
@@ -109,14 +114,14 @@ export function QuizPage() {
         replace: true,
       });
     } catch (submitError) {
+      await minLoadingTime; // Still wait for animation to complete on error
       setError(submitError instanceof Error ? submitError.message : 'Quiz submission failed.');
-    } finally {
       setSubmitting(false);
     }
   }
 
   if (loading) {
-    return <div className="rounded-3xl border border-white bg-white p-8 text-slate-600 shadow-sm">Loading quiz...</div>;
+    return <LoadingScreen />;
   }
 
   if (error) {
@@ -128,7 +133,9 @@ export function QuizPage() {
   }
 
   return (
-    <section className="mx-auto max-w-4xl space-y-6">
+    <>
+      {submitting && <LoadingScreen />}
+      <section className="mx-auto max-w-4xl space-y-6">
       <div className="rounded-[2rem] border border-white bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -206,5 +213,6 @@ export function QuizPage() {
         </div>
       </div>
     </section>
+    </>
   );
 }

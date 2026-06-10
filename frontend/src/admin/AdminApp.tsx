@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminPage } from '../pages/AdminPage';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { clearAdminToken, fetchAdminSession, getAdminToken, loginAdmin, logoutAdmin, setAdminToken } from '../lib/api';
 
 export function AdminApp() {
@@ -16,31 +17,54 @@ export function AdminApp() {
       return;
     }
 
-    fetchAdminSession()
+    // Ensure minimum loading time for complete animation cycle
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1430));
+    const authCheck = fetchAdminSession()
       .then(() => setAuthenticated(true))
-      .catch(() => clearAdminToken())
+      .catch(() => clearAdminToken());
+
+    Promise.all([minLoadingTime, authCheck])
       .finally(() => setLoading(false));
   }, []);
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
+    setLoading(true);
+    
+    // Ensure minimum loading time for complete animation cycle
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1430));
+    
     try {
-      const response = await loginAdmin(username, password);
+      const loginPromise = loginAdmin(username, password);
+      const [response] = await Promise.all([loginPromise, minLoadingTime]);
       setAdminToken(response.access_token);
       setAuthenticated(true);
     } catch (loginError) {
+      await minLoadingTime; // Still wait for animation to complete on error
       setError(loginError instanceof Error ? loginError.message : 'Login failed.');
+    } finally {
+      setLoading(false);
     }
   }
 
   function handleLogout() {
-    void logoutAdmin().finally(() => clearAdminToken());
-    setAuthenticated(false);
+    setLoading(true);
+    
+    // Ensure minimum loading time for complete animation cycle
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1430));
+    const logoutPromise = logoutAdmin();
+    
+    Promise.all([minLoadingTime, logoutPromise])
+      .finally(() => {
+        clearAdminToken();
+        setAuthenticated(false);
+        setLoading(false);
+      });
   }
 
   if (loading) {
-    return <div className="min-h-screen bg-hero-grid p-8 text-slate-600">Loading admin panel...</div>;
+    return <LoadingScreen />;
   }
 
   if (!authenticated) {
@@ -50,7 +74,7 @@ export function AdminApp() {
           <form onSubmit={handleLogin} className="glass-surface w-full rounded-[2rem] p-8 shadow-[0_24px_70px_rgba(249,115,22,0.12)]">
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-daai-600">Admin Access</p>
             <h1 className="mt-2 font-display text-3xl font-bold text-slate-900">Sign in</h1>
-            <p className="mt-2 text-sm text-slate-600">Use the separate admin login to manage curriculum, mentors, services, and applications.</p>
+            <p className="mt-2 text-sm text-slate-600">Login to manage curriculum, mentors, services, and applications.</p>
             {error ? <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p> : null}
             <label className="mt-5 block">
               <span className="mb-2 block text-sm font-semibold text-slate-700">Username</span>

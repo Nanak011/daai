@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { LoadingScreen } from '../components/LoadingScreen';
 import { submitApplication, type DomainName } from '../lib/api';
 
 const domains: DomainName[] = ['AWS DevOps', 'QA', 'Salesforce'];
@@ -14,20 +15,26 @@ export function ApplyPage() {
     setError('');
     setLoading(true);
 
+    // Ensure minimum loading time for complete animation cycle
+    const minLoadingTime = new Promise(resolve => setTimeout(resolve, 1430));
+
     try {
       const form = event.currentTarget;
       const formData = new FormData(form);
-      const response = await submitApplication(formData);
+      const submitPromise = submitApplication(formData);
+      const [response] = await Promise.all([submitPromise, minLoadingTime]);
       navigate(`/application-submitted?candidateId=${response.candidate_id}&token=${encodeURIComponent(response.verification_token)}`);
     } catch (submitError) {
+      await minLoadingTime; // Still wait for animation to complete on error
       setError(submitError instanceof Error ? submitError.message : 'Application submission failed.');
-    } finally {
       setLoading(false);
     }
   }
 
   return (
-    <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
+    <>
+      {loading && <LoadingScreen />}
+      <section className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
       <div className="space-y-4">
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-daai-600">Apply</p>
         <h1 className="font-display text-4xl font-bold text-slate-900">Application Form and Domain Selection</h1>
@@ -82,5 +89,6 @@ export function ApplyPage() {
         </button>
       </form>
     </section>
+    </>
   );
 }
