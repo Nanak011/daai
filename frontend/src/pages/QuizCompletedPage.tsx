@@ -43,8 +43,7 @@ export function QuizCompletedPage() {
         </div>
 
         <div className="mt-6 rounded-2xl border border-slate-200 p-5 text-sm text-slate-600">
-          <p>Profile quality: {result.profile_score.toFixed(2)}%</p>
-          <p>Form completeness: {result.form_completion_score.toFixed(2)}%</p>
+          <p>Resume score: {result.profile_score.toFixed(2)}%</p>
           <p>Correct answers: {result.correct_answers} of {result.total_questions}</p>
         </div>
 

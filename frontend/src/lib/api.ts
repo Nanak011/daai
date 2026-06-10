@@ -206,6 +206,13 @@ export async function createMentor(payload: MentorPayload): Promise<Mentor> {
   });
 }
 
+export async function uploadMentorImage(formData: FormData): Promise<{ image_url: string }> {
+  return adminRequestJson<{ image_url: string }>(`${API_BASE_URL}/admin/mentors/upload-image`, {
+    method: 'POST',
+    body: formData,
+  });
+}
+
 export async function updateMentor(mentorId: number, payload: MentorPayload): Promise<Mentor> {
   return adminRequestJson<Mentor>(`${API_BASE_URL}/admin/mentors/${mentorId}`, {
     method: 'PUT',

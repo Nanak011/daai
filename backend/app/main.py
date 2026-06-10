@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
@@ -42,7 +43,7 @@ from .schemas import (
     SiteContentOut,
     VerificationOut,
 )
-from .scoring import form_completeness_score, grade_mcq, profile_quality_score, total_composite_score
+from .scoring import grade_mcq, resume_score, total_composite_score
 from .seed import seed_questions
 
 
@@ -147,6 +148,8 @@ def startup() -> None:
     Base.metadata.create_all(bind=engine)
     migrate_schema()
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    # Serve uploaded files (mentor images, resumes) at /uploads/*
+    app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
     with Session(bind=engine) as db:
         seed_questions(db)
         seed_content(db)
@@ -288,12 +291,12 @@ def application_body(candidate: Candidate, verification_url: str) -> str:
     return (
         f"Hello {candidate.full_name},\n\n"
         f"We received your DAAI Fellowship application for {candidate.domain}.\n"
-        f"Why do you want to join: {candidate.why_join}\n\n"
         f"Your application copy:\n"
         f"Name: {candidate.full_name}\nEmail: {candidate.email}\nPhone: {candidate.phone}\n"
         f"GitHub: {candidate.github_link or 'N/A'}\nLinkedIn: {candidate.linkedin_link or 'N/A'}\n\n"
+        f"Why do you want to join: {candidate.why_join}\n\n"
         f"Verification link: {verification_url}\n\n"
-        f"After verification, we will unlock your quiz link and send the next steps."
+        f"After verification, you will be able to access the MCQ test."
     )
 
 
@@ -410,19 +413,9 @@ async def create_application(
         buffer.write(await resume.read())
 
     candidate.resume_path = str(file_path)
-    candidate.profile_score = profile_quality_score(candidate.github_link, candidate.linkedin_link, candidate.resume_path)
-    candidate.form_completion_score = form_completeness_score(
-        {
-            "full_name": candidate.full_name,
-            "email": candidate.email,
-            "phone": candidate.phone,
-            "github_link": candidate.github_link,
-            "linkedin_link": candidate.linkedin_link,
-            "resume_path": candidate.resume_path,
-            "domain": candidate.domain,
-        }
-    )
-    candidate.total_composite_score = total_composite_score(candidate.mcq_score, candidate.profile_score, candidate.form_completion_score)
+    candidate.profile_score = resume_score(str(file_path))
+    candidate.form_completion_score = 0.0
+    candidate.total_composite_score = total_composite_score(candidate.mcq_score, candidate.profile_score)
     db.commit()
     db.refresh(candidate)
 
@@ -495,23 +488,12 @@ def submit_quiz(payload: QuizSubmissionIn, db: Session = Depends(get_db)) -> Qui
     correct_answers = [q.correct_option_index for q in questions]
     mcq_score, correct_count = grade_mcq(payload.answers, correct_answers)
 
-    profile_score = profile_quality_score(candidate.github_link, candidate.linkedin_link, candidate.resume_path)
-    form_score = form_completeness_score(
-        {
-            "full_name": candidate.full_name,
-            "email": candidate.email,
-            "phone": candidate.phone,
-            "github_link": candidate.github_link,
-            "linkedin_link": candidate.linkedin_link,
-            "resume_path": candidate.resume_path,
-            "domain": candidate.domain,
-        }
-    )
-    composite_score = total_composite_score(mcq_score, profile_score, form_score)
+    resume_score_val = resume_score(candidate.resume_path)
+    composite_score = total_composite_score(mcq_score, resume_score_val)
 
     candidate.mcq_score = mcq_score
-    candidate.profile_score = profile_score
-    candidate.form_completion_score = form_score
+    candidate.profile_score = resume_score_val
+    candidate.form_completion_score = 0.0
     candidate.total_composite_score = composite_score
     db.add(
         QuizAttempt(
@@ -526,8 +508,8 @@ def submit_quiz(payload: QuizSubmissionIn, db: Session = Depends(get_db)) -> Qui
     return QuizSubmissionOut(
         candidate_id=candidate.id,
         mcq_score=mcq_score,
-        profile_score=profile_score,
-        form_completion_score=form_score,
+        profile_score=resume_score_val,
+        form_completion_score=0.0,
         total_composite_score=composite_score,
         total_questions=len(questions),
         correct_answers=correct_count,
@@ -601,6 +583,25 @@ def admin_email_outbox(_: AdminSession = Depends(require_admin), db: Session = D
 def admin_mentors(_: AdminSession = Depends(require_admin), db: Session = Depends(get_db)) -> list[MentorOut]:
     mentors = db.scalars(select(Mentor).order_by(Mentor.created_at.desc())).all()
     return [mentor_to_out(m) for m in mentors]
+
+
+@app.post("/api/admin/mentors/upload-image")
+async def upload_mentor_image(
+    image: UploadFile = File(...),
+    _: AdminSession = Depends(require_admin),
+) -> dict[str, str]:
+    """Upload a mentor profile image. Returns the public URL path."""
+    allowed = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+    if image.content_type not in allowed:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, WebP, or GIF images are allowed.")
+
+    ext = image.filename.rsplit(".", 1)[-1].lower() if image.filename and "." in image.filename else "jpg"
+    safe_name = f"mentor-{secrets.token_hex(8)}.{ext}"
+    file_path = UPLOAD_DIR / safe_name
+    with file_path.open("wb") as buf:
+        buf.write(await image.read())
+
+    return {"image_url": f"/uploads/{safe_name}"}
 
 
 @app.post("/api/admin/mentors", response_model=MentorOut)

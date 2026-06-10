@@ -16,6 +16,7 @@ import {
   updateCurriculumItem,
   updateService,
   updateSiteContent,
+  uploadMentorImage,
   type CandidateStatus,
   type CurriculumItem,
   type EmailOutbox,
@@ -41,7 +42,6 @@ const TABS: { key: Tab; label: string }[] = [
 type MentorForm = { id?: number; name: string; title: string; bio: string; expertise: string; email: string; image_url: string };
 type ServiceForm = { id?: number; title: string; description: string; order_index: number; active: boolean };
 type CurriculumForm = { id?: number; title: string; description: string; track: string; order_index: number; active: boolean };
-
 export function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
   const [applications, setApplications] = useState<CandidateStatus[]>([]);
@@ -53,6 +53,8 @@ export function AdminPage() {
   const [error, setError] = useState('');
 
   const [mentorForm, setMentorForm] = useState<MentorForm>({ name: '', title: '', bio: '', expertise: '', email: '', image_url: '' });
+  const [mentorImageFile, setMentorImageFile] = useState<File | null>(null);
+  const [mentorImagePreview, setMentorImagePreview] = useState<string>('');
   const [serviceForm, setServiceForm] = useState<ServiceForm>({ title: '', description: '', order_index: 0, active: true });
   const [curriculumForm, setCurriculumForm] = useState<CurriculumForm>({ title: '', description: '', track: 'Core', order_index: 0, active: true });
   const [contentDrafts, setContentDrafts] = useState<Record<string, string>>({});
@@ -85,9 +87,21 @@ export function AdminPage() {
 
   async function saveMentor() {
     setError('');
-    const payload = { name: mentorForm.name, title: mentorForm.title, bio: mentorForm.bio, expertise: mentorForm.expertise, email: mentorForm.email, image_url: mentorForm.image_url };
+    let image_url = mentorForm.image_url;
+
+    // Upload new image if selected
+    if (mentorImageFile) {
+      const formData = new FormData();
+      formData.append('image', mentorImageFile);
+      const uploaded = await uploadMentorImage(formData);
+      image_url = uploaded.image_url;
+    }
+
+    const payload = { name: mentorForm.name, title: mentorForm.title, bio: mentorForm.bio, expertise: mentorForm.expertise, email: mentorForm.email, image_url };
     if (mentorForm.id) { await updateMentor(mentorForm.id, payload); } else { await createMentor(payload); }
     setMentorForm({ name: '', title: '', bio: '', expertise: '', email: '', image_url: '' });
+    setMentorImageFile(null);
+    setMentorImagePreview('');
     await loadAll();
   }
 
@@ -180,7 +194,7 @@ export function AdminPage() {
                   <span className="rounded-full bg-daai-50 px-3 py-1 text-xs font-semibold text-daai-700">{a.total_composite_score.toFixed(2)}%</span>
                 </div>
                 <p className="mt-3 text-sm text-slate-600">Why join: {a.why_join}</p>
-                <p className="mt-2 text-sm text-slate-600">MCQ: {a.mcq_score.toFixed(2)}% · Profile: {a.profile_score.toFixed(2)}% · Form: {a.form_completion_score.toFixed(2)}%</p>
+                <p className="mt-2 text-sm text-slate-600">MCQ: {a.mcq_score.toFixed(2)}% · Resume: {a.profile_score.toFixed(2)}% · Composite: {a.total_composite_score.toFixed(2)}%</p>
               </article>
             ))}
           </div>
@@ -196,7 +210,23 @@ export function AdminPage() {
             <textarea value={mentorForm.bio} onChange={(e) => setMentorForm({ ...mentorForm, bio: e.target.value })} className="min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Bio" />
             <input value={mentorForm.expertise} onChange={(e) => setMentorForm({ ...mentorForm, expertise: e.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Expertise" />
             <input value={mentorForm.email} onChange={(e) => setMentorForm({ ...mentorForm, email: e.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Email" />
-            <input value={mentorForm.image_url} onChange={(e) => setMentorForm({ ...mentorForm, image_url: e.target.value })} className="w-full rounded-2xl border border-slate-200 px-4 py-3" placeholder="Image URL" />
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Profile Image</label>
+              {(mentorImagePreview || mentorForm.image_url) ? (
+                <img src={mentorImagePreview || mentorForm.image_url} alt="preview" className="h-20 w-20 rounded-2xl object-cover border border-slate-200" />
+              ) : null}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setMentorImageFile(file);
+                  setMentorImagePreview(file ? URL.createObjectURL(file) : '');
+                }}
+                className="w-full rounded-2xl border border-slate-200 px-4 py-3 file:mr-4 file:rounded-full file:border-0 file:bg-daai-50 file:px-4 file:py-2 file:font-semibold file:text-daai-700"
+              />
+              <p className="text-xs text-slate-400">JPEG, PNG or WebP. Leave empty to keep existing image.</p>
+            </div>
             <button type="button" onClick={() => void saveMentor()} className="rounded-full bg-daai-500 px-4 py-2 text-sm font-semibold text-white">
               {mentorForm.id ? 'Update Mentor' : 'Add Mentor'}
             </button>
@@ -212,7 +242,7 @@ export function AdminPage() {
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2">
-                  <button type="button" onClick={() => setMentorForm({ id: m.id, name: m.name, title: m.title, bio: m.bio, expertise: m.expertise, email: m.email, image_url: m.image_url })} className="rounded-full border border-slate-200 px-3 py-1 text-sm">Edit</button>
+                  <button type="button" onClick={() => { setMentorForm({ id: m.id, name: m.name, title: m.title, bio: m.bio, expertise: m.expertise, email: m.email, image_url: m.image_url }); setMentorImageFile(null); setMentorImagePreview(''); }} className="rounded-full border border-slate-200 px-3 py-1 text-sm">Edit</button>
                   <button type="button" onClick={() => void deleteMentor(m.id).then(loadAll)} className="rounded-full border border-red-200 px-3 py-1 text-sm text-red-700">Delete</button>
                 </div>
               </article>
