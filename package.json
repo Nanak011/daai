@@ -1,0 +1,10 @@
+{
+  "name": "daai-fellowship",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev.mjs",
+    "install:all": "cd frontend && npm install"
+  }
+}
