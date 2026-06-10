@@ -31,6 +31,7 @@ A full-stack web application for managing fellowship applications with automated
 ---
 
 ## 🏗️ Architecture
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/41cee849-849f-4c88-a849-4742f9724980" />
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
