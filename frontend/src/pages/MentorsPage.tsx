@@ -20,21 +20,19 @@ export function MentorsPage() {
         {mentors.length === 0 ? <p className="text-slate-600">No mentor records have been added yet.</p> : null}
         {mentors.map((mentor) => (
           <article key={mentor.id} className="rounded-3xl border border-white/70 bg-white/70 p-6 shadow-sm backdrop-blur-xl">
-            <div className="flex items-center gap-4">
-              {mentor.image_url && !mentor.image_url.startsWith('data:') ? (
-                <img 
-                  src={mentor.image_url.startsWith('http') ? mentor.image_url : `${API_BASE}${mentor.image_url}`}
-                  alt={mentor.name} 
-                  className="h-16 w-16 rounded-2xl object-cover border border-slate-200"
-                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                />
-              ) : null}
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">{mentor.name}</h2>
-                <p className="mt-1 text-sm font-medium text-daai-700">{mentor.title}</p>
-              </div>
+            {mentor.image_url && !mentor.image_url.startsWith('data:') ? (
+              <img 
+                src={mentor.image_url.startsWith('http') ? mentor.image_url : `${API_BASE}${mentor.image_url}`}
+                alt={mentor.name} 
+                className="mx-auto h-24 w-24 rounded-2xl object-cover border border-slate-200 mb-4"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            ) : null}
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-slate-900">{mentor.name}</h2>
+              <p className="mt-1 text-sm font-medium text-daai-700">{mentor.title}</p>
             </div>
-            <p className="mt-3 leading-7 text-slate-600">{mentor.bio}</p>
+            <p className="mt-4 leading-7 text-slate-600">{mentor.bio}</p>
             <p className="mt-3 text-sm text-slate-500">{mentor.expertise}</p>
           </article>
         ))}

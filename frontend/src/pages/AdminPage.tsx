@@ -244,12 +244,14 @@ export function AdminPage() {
                     <img 
                       src={m.image_url.startsWith('http') ? m.image_url : `${API_BASE}${m.image_url}`} 
                       alt={m.name} 
-                      className="h-12 w-12 rounded-2xl object-cover" 
+                      className="h-16 w-16 flex-shrink-0 rounded-2xl object-cover border border-slate-200" 
                     />
                   ) : null}
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-slate-900">{m.name}</h3>
                     <p className="text-sm text-slate-500">{m.title}</p>
+                    <p className="mt-2 text-sm text-slate-600 line-clamp-2">{m.bio}</p>
+                    <p className="mt-1 text-xs text-slate-400">{m.email}</p>
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2">
