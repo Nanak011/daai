@@ -95,6 +95,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve uploaded files (mentor images, resumes) at /uploads/*
+# Must be mounted before startup to avoid route conflicts
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
+
 
 # ---------------------------------------------------------------------------
 # Admin IP allowlist middleware
@@ -147,9 +152,6 @@ def startup() -> None:
 
     Base.metadata.create_all(bind=engine)
     migrate_schema()
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    # Serve uploaded files (mentor images, resumes) at /uploads/*
-    app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
     with Session(bind=engine) as db:
         seed_questions(db)
         seed_content(db)

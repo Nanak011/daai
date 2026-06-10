@@ -26,6 +26,7 @@ import {
 } from '../lib/api';
 
 const editableContentKeys = ['hero_title', 'hero_subtitle', 'about_summary', 'contact_email', 'contact_phone', 'contact_message'];
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8001';
 
 type Tab = 'dashboard' | 'applications' | 'mentors' | 'curriculum' | 'services' | 'content' | 'outbox';
 
@@ -213,7 +214,11 @@ export function AdminPage() {
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-slate-700">Profile Image</label>
               {(mentorImagePreview || mentorForm.image_url) ? (
-                <img src={mentorImagePreview || mentorForm.image_url} alt="preview" className="h-20 w-20 rounded-2xl object-cover border border-slate-200" />
+                <img 
+                  src={mentorImagePreview || (mentorForm.image_url.startsWith('http') ? mentorForm.image_url : `${API_BASE}${mentorForm.image_url}`)} 
+                  alt="preview" 
+                  className="h-20 w-20 rounded-2xl object-cover border border-slate-200" 
+                />
               ) : null}
               <input
                 type="file"
@@ -235,7 +240,13 @@ export function AdminPage() {
             {mentors.map((m) => (
               <article key={m.id} className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex items-start gap-3">
-                  {m.image_url ? <img src={m.image_url} alt={m.name} className="h-12 w-12 rounded-2xl object-cover" /> : null}
+                  {m.image_url ? (
+                    <img 
+                      src={m.image_url.startsWith('http') ? m.image_url : `${API_BASE}${m.image_url}`} 
+                      alt={m.name} 
+                      className="h-12 w-12 rounded-2xl object-cover" 
+                    />
+                  ) : null}
                   <div>
                     <h3 className="font-semibold text-slate-900">{m.name}</h3>
                     <p className="text-sm text-slate-500">{m.title}</p>

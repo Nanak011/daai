@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { fetchMentors, type Mentor } from '../lib/api';
 
+const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8001';
+
 export function MentorsPage() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
 
@@ -21,7 +23,7 @@ export function MentorsPage() {
             <div className="flex items-center gap-4">
               {mentor.image_url && !mentor.image_url.startsWith('data:') ? (
                 <img 
-                  src={mentor.image_url} 
+                  src={mentor.image_url.startsWith('http') ? mentor.image_url : `${API_BASE}${mentor.image_url}`}
                   alt={mentor.name} 
                   className="h-16 w-16 rounded-2xl object-cover border border-slate-200"
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}
