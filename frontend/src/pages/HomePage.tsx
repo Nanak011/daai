@@ -11,14 +11,23 @@ const milestones = [
 
 export function HomePage() {
   const [content, setContent] = useState<SiteContent[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchSiteContent().then(setContent).catch(() => setContent([]));
+    fetchSiteContent()
+      .then(setContent)
+      .catch(() => setContent([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const contentMap = new Map(content.map((item) => [item.key, item.value]));
   const heroTitle = contentMap.get('hero_title') ?? 'Build practical AI and data science skills with a focused fellowship path.';
   const heroSubtitle = contentMap.get('hero_subtitle') ?? 'The DAAI Fellowship connects motivated learners to mentorship, industry projects, and a verified selection flow.';
+
+  // Show nothing while loading to prevent flash of default content
+  if (loading) {
+    return null;
+  }
 
   return (
     <section className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">

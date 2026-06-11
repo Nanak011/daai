@@ -29,6 +29,8 @@ from .schemas import (
     AdminLoginOut,
     EmailOutboxOut,
     DomainName,
+    ContactSubmissionIn,
+    ContactSubmissionOut,
     CurriculumIn,
     CurriculumOut,
     MentorIn,
@@ -64,6 +66,9 @@ ADMIN_SESSION_HOURS = int(os.getenv("ADMIN_SESSION_HOURS", "12"))
 # Leave empty to allow all IPs (useful during initial setup, lock it down before production).
 _raw_admin_ips = os.getenv("ADMIN_ALLOWED_IPS", "")
 ADMIN_ALLOWED_IPS: set[str] = {ip.strip() for ip in _raw_admin_ips.split(",") if ip.strip()}
+
+# Email for receiving contact form submissions
+ADMIN_NOTIFY_EMAIL = os.getenv("ADMIN_NOTIFY_EMAIL", "")
 
 # AWS SES configuration
 SES_REGION = os.getenv("AWS_SES_REGION", "us-east-1")
@@ -535,6 +540,38 @@ def list_services(db: Session = Depends(get_db)) -> list[ServiceOut]:
 def get_site_content(db: Session = Depends(get_db)) -> list[SiteContentOut]:
     rows = db.scalars(select(SiteContent).order_by(SiteContent.key.asc())).all()
     return [SiteContentOut(id=row.id, key=row.key, value=row.value) for row in rows]
+
+
+@app.post("/api/contact", response_model=ContactSubmissionOut)
+def submit_contact_form(payload: ContactSubmissionIn, db: Session = Depends(get_db)) -> ContactSubmissionOut:
+    """Public contact form submission endpoint. Sends email to admin."""
+    if not ADMIN_NOTIFY_EMAIL:
+        raise HTTPException(status_code=503, detail="Contact form is not configured. Please contact us directly.")
+    
+    subject = f"DAAI Contact Form: {payload.name}"
+    body = (
+        f"New contact form submission:\n\n"
+        f"Name: {payload.name}\n"
+        f"Email: {payload.email}\n\n"
+        f"Message:\n{payload.message}\n\n"
+        f"---\n"
+        f"Reply directly to {payload.email} to respond."
+    )
+    
+    # Send to admin email
+    send_email_background(ADMIN_NOTIFY_EMAIL, subject, body)
+    
+    # Send confirmation to user
+    confirmation_body = (
+        f"Hello {payload.name},\n\n"
+        f"Thank you for contacting the DAAI Fellowship team. We have received your message and will respond shortly.\n\n"
+        f"Your message:\n{payload.message}\n\n"
+        f"Best regards,\n"
+        f"DAAI Fellowship Team"
+    )
+    send_email_background(str(payload.email), "DAAI Fellowship - Contact Form Received", confirmation_body)
+    
+    return ContactSubmissionOut(message="Thank you for contacting us! We will respond shortly.")
 
 
 # ---------------------------------------------------------------------------

@@ -310,3 +310,13 @@ export async function submitQuiz(candidateId: number, answers: number[]): Promis
     body: JSON.stringify({ candidate_id: candidateId, answers }),
   });
 }
+
+export async function submitContactForm(name: string, email: string, message: string): Promise<{ message: string }> {
+  return requestJson<{ message: string }>(`${API_BASE_URL}/contact`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name, email, message }),
+  });
+}

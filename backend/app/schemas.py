@@ -136,3 +136,13 @@ class VerificationOut(BaseModel):
     candidate_id: int
     is_verified: bool
     message: str
+
+
+class ContactSubmissionIn(BaseModel):
+    name: str = Field(..., min_length=2)
+    email: EmailStr
+    message: str = Field(..., min_length=10)
+
+
+class ContactSubmissionOut(BaseModel):
+    message: str
