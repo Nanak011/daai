@@ -61,3 +61,53 @@ textarea,
   backdrop-filter: blur(18px);
   box-shadow: 0 22px 60px rgba(15, 23, 42, 0.08);
 }
+
+/* ========================================
+   Button Press Animation
+   ======================================== */
+
+button,
+a[class*='rounded-full'],
+[role='button'] {
+  transition: transform 0.1s ease-in-out;
+}
+
+button:active,
+a[class*='rounded-full']:active,
+[role='button']:active {
+  transform: scale(0.95);
+}
+
+/* Prevent animation on disabled buttons */
+button:disabled:active {
+  transform: none;
+}
+
+/* ========================================
+   Custom Cursor Click Animation
+   ======================================== */
+
+/* Visual click feedback - creates a ring effect at cursor position */
+@keyframes click-ring {
+  0% {
+    transform: scale(0.5);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Click effect will be added via JavaScript */
+.cursor-click-effect {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f97316;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  animation: click-ring 0.4s ease-out;
+}
+

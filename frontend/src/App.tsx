@@ -26,6 +26,30 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Cursor click animation
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      // Create click effect element
+      const clickEffect = document.createElement('div');
+      clickEffect.className = 'cursor-click-effect';
+      clickEffect.style.left = `${e.clientX - 10}px`;
+      clickEffect.style.top = `${e.clientY - 10}px`;
+      
+      document.body.appendChild(clickEffect);
+      
+      // Remove after animation completes
+      setTimeout(() => {
+        clickEffect.remove();
+      }, 400);
+    }
+
+    document.addEventListener('mousedown', handleClick);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+    };
+  }, []);
+
   // Show loading screen only on initial load
   if (initialLoading) {
     return <LoadingScreen />;
